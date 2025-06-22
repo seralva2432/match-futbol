@@ -5,7 +5,6 @@
   <title>Match Fútbol</title>
   <meta name="description" content="Encuentra y crea partidos de fútbol cerca de ti en tiempo real. Match Fútbol conecta jugadores en tu ciudad.">
 
-  <title>Match Fútbol</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -63,30 +62,69 @@
       if(miMarker){ map.removeLayer(miMarker); miMarker = null; }
     }
 
-    function buscarPartidas(){
-      limpiarMapa();
-      tipoActual = "buscar";
-      if(chatEscuchado) chatEscuchado.off();
-      onChildAdded(ref(db,"partidas"), data=> {
-        const val = data.val();
-        L.marker([val.lat,val.lon],{ icon: iconBlue }).addTo(map)
-          .bindPopup(`<b>Fútbol ${val.tipoFutbol}</b><br>Suplentes: ${val.suplentes}`);
-      });
+  function buscarPartidas() {
+  limpiarMapa();
+  tipoActual = "buscar";
+  if (chatEscuchado) chatEscuchado.off();
+
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+
+    if (!map) {
+      map = L.map('mapa').setView([lat, lon], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    } else {
+      map.setView([lat, lon], 15);
     }
 
-    function crearPartida(){
-      limpiarMapa();
-      tipoActual = "crear";
-      if(miRef) remove(miRef);
-      navigator.geolocation.getCurrentPosition((pos)=>{
-        const lat=pos.coords.latitude, lon=pos.coords.longitude;
-        const nr = push(ref(db,"partidas"));
-        miRef = nr; miId = nr.key;
-        set(nr, { lat, lon, tipo:"crear", tipoFutbol:document.getElementById("tipoFutbol").value, suplentes:document.getElementById("suplentes").value });
-        window.addEventListener("beforeunload",()=>remove(miRef));
-        miMarker = L.marker([lat,lon],{icon:iconBlue}).addTo(map).bindPopup("Tu partida").openPopup();
-      });
+    onChildAdded(ref(db, "partidas"), (data) => {
+      const val = data.val();
+      if (!val.lat || !val.lon) return;
+      L.marker([val.lat, val.lon], { icon: iconBlue }).addTo(map)
+        .bindPopup(`<b>Fútbol ${val.tipoFutbol}</b><br>Suplentes: ${val.suplentes}`);
+    });
+  });
+}
+
+    function crearPartida() {
+  limpiarMapa();
+  tipoActual = "crear";
+
+  if (miRef) remove(miRef);
+
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+
+    // Si no se ha creado el mapa, créalo aquí
+    if (!map) {
+      map = L.map('mapa').setView([lat, lon], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    } else {
+      map.setView([lat, lon], 15); // si ya existe, solo centra
     }
+
+    const nuevaRef = push(ref(db, "partidas"));
+    miRef = nuevaRef;
+    miId = nuevaRef.key;
+
+    set(nuevaRef, {
+      lat,
+      lon,
+      tipo: "crear",
+      tipoFutbol: document.getElementById("tipoFutbol").value,
+      suplentes: document.getElementById("suplentes").value
+    });
+
+    // Agrega tu marcador azul
+    miMarker = L.marker([lat, lon], { icon: iconBlue }).addTo(map).bindPopup("Tu partida").openPopup();
+
+    // Elimina la partida si cierra
+    window.addEventListener("beforeunload", () => remove(miRef));
+  });
+}
+
 
     window.iniciarChat = function(destinoId, miTipo){
       if((miTipo==="crear"&&destinoId.startsWith("crear")) || (miTipo==="buscar"&&destinoId.startsWith("buscar"))){
@@ -155,5 +193,3 @@
 
 </body>
 </html>
-[Uploadgoogle-site-verification: googlede5498f64984b819.htmling googlede5498f64984b819.html…]()
-
